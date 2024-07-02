@@ -28,51 +28,80 @@ public class NodeSorterExpressionBased implements Optimization {
         ArrayList<HDLNode> nodesAvail = new ArrayList<>(nodes);
         nodes.clear();
 
+        HashSet<HDLNet> nets = initializeNets(circuit);
+
+        addNodesWithoutInputs(nodes, nodesAvail, nets);
+
+        performLayerSorting(nodes, nodesAvail, nets);
+
+        // if there are unsolvable circular dependencies, keep old order
+        if (!nodesAvail.isEmpty()) {
+            nodes.addAll(nodesAvail);
+        }
+    }
+
+    private HashSet<HDLNet> initializeNets(HDLCircuit circuit) {
         HashSet<HDLNet> nets = new HashSet<>();
-        for (HDLPort p : circuit.getInputs())
+        for (HDLPort p : circuit.getInputs()) {
             nets.add(p.getNet());
+        }
+        return nets;
+    }
 
-
-        // all nodes without an input at top!
-        for (HDLNode n : nodesAvail)
+    private void addNodesWithoutInputs(ArrayList<HDLNode> nodes, ArrayList<HDLNode> nodesAvail, HashSet<HDLNet> nets) {
+        for (HDLNode n : nodesAvail) {
             if (n.getInputs().isEmpty()) {
                 nodes.add(n);
-                for (HDLPort p : n.getOutputs())
-                    if (p.getNet() != null)
+                for (HDLPort p : n.getOutputs()) {
+                    if (p.getNet() != null) {
                         nets.add(p.getNet());
+                    }
+                }
             }
+        }
         nodesAvail.removeAll(nodes);
+    }
 
-        // then a layer sorting
+    private void performLayerSorting(ArrayList<HDLNode> nodes, ArrayList<HDLNode> nodesAvail, HashSet<HDLNet> nets) {
         while (!nodesAvail.isEmpty()) {
-            ArrayList<HDLNode> layer = new ArrayList<>();
-            for (HDLNode n : nodesAvail) {
-                if (n.traverseExpressions(new DependsOnlyOn(nets)).ok())
-                    layer.add(n);
-            }
+            ArrayList<HDLNode> layer = getHdlNodes(nodesAvail, nets);
+
+            extracted(nodesAvail, nets, layer);
 
             if (layer.isEmpty()) {
-                // circular dependency detected
-                for (HDLNode n : nodesAvail)
-                    if (n.traverseExpressions(new DependsAtLeastOnOneOf(nets)).ok())
-                        layer.add(n);
-            }
-
-            if (layer.isEmpty())
                 break;
+            }
 
             nodes.addAll(layer);
             nodesAvail.removeAll(layer);
-            for (HDLNode n : layer)
-                for (HDLPort p : n.getOutputs())
-                    if (p.getNet() != null)
+            for (HDLNode n : layer) {
+                for (HDLPort p : n.getOutputs()) {
+                    if (p.getNet() != null) {
                         nets.add(p.getNet());
-
+                    }
+                }
+            }
         }
+    }
 
-        // if there are unsolvable circular dependencies, keep old order
-        if (!nodesAvail.isEmpty())
-            nodes.addAll(nodesAvail);
+    private static void extracted(ArrayList<HDLNode> nodesAvail, HashSet<HDLNet> nets, ArrayList<HDLNode> layer) {
+        if (layer.isEmpty()) {
+            for (HDLNode n : nodesAvail) {
+                if (n.traverseExpressions(new DependsAtLeastOnOneOf(nets)).ok()) {
+                    layer.add(n);
+                }
+            }
+        }
+    }
+
+    private static ArrayList<HDLNode> getHdlNodes(ArrayList<HDLNode> nodesAvail, HashSet<HDLNet> nets) {
+        ArrayList<HDLNode> layer = new ArrayList<>();
+        for (HDLNode n : nodesAvail) {
+            if (n.traverseExpressions(new DependsOnlyOn(nets)).ok()) {
+                layer.add(n);
+            }
+        }
+        return layer;
     }
 
     private static final class DependsOnlyOn implements Visitor {
