@@ -10,6 +10,8 @@ import java.util.Map;
 
 import static de.neemann.digital.hdl.hgs.Tokenizer.isWhiteSpace;
 
+import de.neemann.digital.hdl.hgs.ValueOperation;
+
 /**
  * Helpers for values
  */
@@ -123,14 +125,7 @@ public final class Value {
      * @return true if both values are equal
      */
     public static boolean equals(Object a, Object b) {
-        if (a instanceof Double || b instanceof Double)
-            return a.equals(b);
-        else if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() == ((Number) b).longValue();
-        else if (a instanceof String || b instanceof String)
-            return a.toString().equals(b.toString());
-        else
-            return a.equals(b);
+        return ValueOperation.equals(a, b);
     }
 
     /**
@@ -142,13 +137,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object add(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) + toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() + ((Number) b).longValue();
-        if (a instanceof String || b instanceof String)
-            return a.toString() + b.toString();
-        throw new HGSEvalException("arguments must be int or string, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.add(a, b);
     }
 
     /**
@@ -160,11 +149,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object sub(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) - toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() - ((Number) b).longValue();
-        throw new HGSEvalException("arguments must be int or double, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.sub(a, b);
     }
 
     /**
@@ -176,11 +161,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object mul(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) * toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() * ((Number) b).longValue();
-        throw new HGSEvalException("arguments must be int or double, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.mul(a, b);
     }
 
     /**
@@ -192,11 +173,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object div(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) / toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() / ((Number) b).longValue();
-        throw new HGSEvalException("arguments must be int or double, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.div(a, b);
     }
 
     /**
@@ -208,9 +185,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object or(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() | ((Number) b).longValue();
-        return toBool(a) || toBool(b);
+        return ValueOperation.or(a, b);
     }
 
     /**
@@ -222,9 +197,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object xor(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() ^ ((Number) b).longValue();
-        return toBool(a) ^ toBool(b);
+        return ValueOperation.xor(a, b);
     }
 
     /**
@@ -236,9 +209,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object and(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Number && b instanceof Number)
-            return ((Number) a).longValue() & ((Number) b).longValue();
-        return toBool(a) && toBool(b);
+        return ValueOperation.and(a, b);
     }
 
     /**
@@ -249,9 +220,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object not(Object value) throws HGSEvalException {
-        if (value instanceof Number)
-            return ~((Number) value).longValue();
-        return !toBool(value);
+        return ValueOperation.not(value);
     }
 
     /**
@@ -262,9 +231,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static Object neg(Object value) throws HGSEvalException {
-        if (value instanceof Double)
-            return -(Double) value;
-        return -toLong(value);
+        return ValueOperation.neg(value);
     }
 
     /**
@@ -276,13 +243,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static boolean less(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) < toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return toLong(a) < toLong(b);
-        if (a instanceof String && b instanceof String)
-            return a.toString().compareTo(b.toString()) < 0;
-        throw new HGSEvalException("arguments must be int, double or string, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.less(a, b);
     }
 
     /**
@@ -294,13 +255,7 @@ public final class Value {
      * @throws HGSEvalException HGSEvalException
      */
     public static boolean lessEqual(Object a, Object b) throws HGSEvalException {
-        if (a instanceof Double || b instanceof Double)
-            return toDouble(a) <= toDouble(b);
-        if (a instanceof Number && b instanceof Number)
-            return toLong(a) <= toLong(b);
-        if (a instanceof String && b instanceof String)
-            return a.toString().compareTo(b.toString()) <= 0;
-        throw new HGSEvalException("arguments must be int, double or string, not " + a.getClass().getSimpleName() + "+" + b.getClass().getSimpleName());
+        return ValueOperation.lessEqual(a, b);
     }
 
     /**
