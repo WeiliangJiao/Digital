@@ -121,75 +121,33 @@ public class DataEditor extends JDialog {
                 }
             });
         } else {
-            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            buttons.add(new JButton(new AbstractAction(Lang.get("ok")) {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    if (table.isEditing()) {
-                        table.getCellEditor().stopCellEditing();
-                    } else {
-                        ok = true;
-                        dispose();
-                    }
-                }
-            }));
-            getContentPane().add(buttons, BorderLayout.SOUTH);
-
-            JMenuBar menuBar = new JMenuBar();
-            JMenu data = new JMenu(Lang.get("menu_file"));
-
-            data.add(new ToolTipAction(Lang.get("btn_clearData")) {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    localDataField.clearAll();
-                    dm.fireEvent(new TableModelEvent(dm));
-                }
-            }.setToolTip(Lang.get("btn_clearData_tt")).createJMenuItem());
-            data.add(new ToolTipAction(Lang.get("btn_load")) {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    JFileChooser fc = new MyFileChooser();
-                    JCheckBox bigEndian = new JCheckBox(Lang.get("msg_bigEndian"));
-                    if (dataBits > 8) {
-                        bigEndian.setToolTipText(Lang.get("key_bigEndian_tt"));
-                        fc.setAccessory(bigEndian);
-                    }
-                    setFileNameTo(fc);
-                    fc.setFileFilter(new FileNameExtensionFilter("hex", "hex"));
-                    if (fc.showOpenDialog(DataEditor.this) == JFileChooser.APPROVE_OPTION) {
-                        setFileName(fc.getSelectedFile());
-                        try {
-                            DataField dataRead = Importer.read(fc.getSelectedFile(), dataBits, bigEndian.isSelected())
-                                    .trimValues(addrBits, dataBits);
-                            localDataField.setDataFrom(dataRead);
-                            dm.fireEvent(new TableModelEvent(dm));
-                        } catch (IOException e1) {
-                            new ErrorMessage(Lang.get("msg_errorReadingFile")).addCause(e1).show(DataEditor.this);
-                        }
-                    }
-                }
-            }.createJMenuItem());
-            data.add(new ToolTipAction(Lang.get("btn_save")) {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    JFileChooser fc = new MyFileChooser();
-                    setFileNameTo(fc);
-                    fc.setFileFilter(new FileNameExtensionFilter("hex", "hex"));
-                    new SaveAsHelper(DataEditor.this, fc, "hex").checkOverwrite(
-                            file -> {
-                                setFileName(file);
-                                localDataField.saveTo(file);
-                            }
-                    );
-                }
-            }.createJMenuItem());
-
-
-            menuBar.add(data);
-
-            setJMenuBar(menuBar);
+            setupMenuBarAndFileOperations(dataBits, addrBits, dm);
         }
 
+        setupPasteShortcut();
+
+        setupCopyShortcut();
+
+        pack();
+        if (getWidth() < 150)
+            setSize(new Dimension(150, getHeight()));
+        setLocationRelativeTo(parent);
+    }
+
+    private void setupCopyShortcut() {
+        new ToolTipAction(Lang.get("menu_copy")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int[] rows = table.getSelectedRows();
+                if (rows.length > 0) {
+                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    clipboard.setContents(new StringSelection(((MyTableModel) table.getModel()).toString(rows)), null);
+                }
+            }
+        }.setAcceleratorCTRLplus('C').enableAcceleratorIn(table);
+    }
+
+    private void setupPasteShortcut() {
         new ToolTipAction(Lang.get("menu_paste")) {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -202,22 +160,76 @@ public class DataEditor extends JDialog {
                 }
             }
         }.setAcceleratorCTRLplus('V').enableAcceleratorIn(table);
+    }
 
-        new ToolTipAction(Lang.get("menu_copy")) {
+    private void setupMenuBarAndFileOperations(int dataBits, int addrBits, MyTableModel dm) {
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttons.add(new JButton(new AbstractAction(Lang.get("ok")) {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int[] rows = table.getSelectedRows();
-                if (rows.length > 0) {
-                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-                    clipboard.setContents(new StringSelection(((MyTableModel) table.getModel()).toString(rows)), null);
+                if (table.isEditing()) {
+                    table.getCellEditor().stopCellEditing();
+                } else {
+                    ok = true;
+                    dispose();
                 }
             }
-        }.setAcceleratorCTRLplus('C').enableAcceleratorIn(table);
+        }));
+        getContentPane().add(buttons, BorderLayout.SOUTH);
 
-        pack();
-        if (getWidth() < 150)
-            setSize(new Dimension(150, getHeight()));
-        setLocationRelativeTo(parent);
+        JMenuBar menuBar = new JMenuBar();
+        JMenu data = new JMenu(Lang.get("menu_file"));
+
+        data.add(new ToolTipAction(Lang.get("btn_clearData")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                localDataField.clearAll();
+                dm.fireEvent(new TableModelEvent(dm));
+            }
+        }.setToolTip(Lang.get("btn_clearData_tt")).createJMenuItem());
+        data.add(new ToolTipAction(Lang.get("btn_load")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fc = new MyFileChooser();
+                JCheckBox bigEndian = new JCheckBox(Lang.get("msg_bigEndian"));
+                if (dataBits > 8) {
+                    bigEndian.setToolTipText(Lang.get("key_bigEndian_tt"));
+                    fc.setAccessory(bigEndian);
+                }
+                setFileNameTo(fc);
+                fc.setFileFilter(new FileNameExtensionFilter("hex", "hex"));
+                if (fc.showOpenDialog(DataEditor.this) == JFileChooser.APPROVE_OPTION) {
+                    setFileName(fc.getSelectedFile());
+                    try {
+                        DataField dataRead = Importer.read(fc.getSelectedFile(), dataBits, bigEndian.isSelected())
+                                .trimValues(addrBits, dataBits);
+                        localDataField.setDataFrom(dataRead);
+                        dm.fireEvent(new TableModelEvent(dm));
+                    } catch (IOException e1) {
+                        new ErrorMessage(Lang.get("msg_errorReadingFile")).addCause(e1).show(DataEditor.this);
+                    }
+                }
+            }
+        }.createJMenuItem());
+        data.add(new ToolTipAction(Lang.get("btn_save")) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fc = new MyFileChooser();
+                setFileNameTo(fc);
+                fc.setFileFilter(new FileNameExtensionFilter("hex", "hex"));
+                new SaveAsHelper(DataEditor.this, fc, "hex").checkOverwrite(
+                        file -> {
+                            setFileName(file);
+                            localDataField.saveTo(file);
+                        }
+                );
+            }
+        }.createJMenuItem());
+
+
+        menuBar.add(data);
+
+        setJMenuBar(menuBar);
     }
 
     private int calcCols(int size, int dataBits, ValueFormatter dataFormat) {
