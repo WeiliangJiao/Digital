@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 
+import de.neemann.digital.hdl.printer.CodePrinter;
+
 /**
  * Create the vhdl output.
  * Used to print a optimized {@link de.neemann.digital.hdl.model2.HDLModel} as VHDL
@@ -225,19 +227,7 @@ public class VHDLCreator {
      */
     private void printOneToMany(HDLNodeSplitterOneToMany node) throws IOException {
         String source = node.getSourceSignal();
-        Splitter.Ports is = node.getOutputSplit();
-        int i = 0;
-        for (HDLPort outPort : node.getOutputs()) {
-            Splitter.Port sp = is.getPort(i++);
-            if (outPort.getNet() != null) {
-                out.print(outPort.getNet().getName()).print(" <= ").print(source).print("(");
-                if (outPort.getBits() == 1)
-                    out.print(sp.getPos());
-                else
-                    out.print(sp.getPos() + sp.getBits() - 1).print(" downto ").print(sp.getPos());
-                out.println(");");
-            }
-        }
+        out.printOneToMany(node, source);
     }
 
     private void printEntityInstantiation(HDLNodeBuildIn node, int num, File root) throws IOException, HDLException {

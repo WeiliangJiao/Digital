@@ -5,6 +5,10 @@
  */
 package de.neemann.digital.hdl.printer;
 
+import de.neemann.digital.core.wiring.Splitter;
+import de.neemann.digital.hdl.model2.HDLNodeSplitterOneToMany;
+import de.neemann.digital.hdl.model2.HDLPort;
+
 import java.io.*;
 
 /**
@@ -230,5 +234,21 @@ public class CodePrinter implements Closeable {
         println();
 
         return this;
+    }
+
+    public void printOneToMany(HDLNodeSplitterOneToMany node, String source) throws IOException {
+        Splitter.Ports is = node.getOutputSplit();
+        int i = 0;
+        for (HDLPort outPort : node.getOutputs()) {
+            Splitter.Port sp = is.getPort(i++);
+            if (outPort.getNet() != null) {
+                this.print(outPort.getNet().getName()).print(" <= ").print(source).print("(");
+                if (outPort.getBits() == 1)
+                    this.print(sp.getPos());
+                else
+                    this.print(sp.getPos() + sp.getBits() - 1).print(" downto ").print(sp.getPos());
+                this.println(");");
+            }
+        }
     }
 }
